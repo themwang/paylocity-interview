@@ -3,3 +3,10 @@
 
 # Ada Library Information
 *.ali
+
+**/.suo
+**/**.dll
+**/bin/**
+**/obj/Debug/**
+**/obj/**
+**/package-lock.json
