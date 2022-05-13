@@ -1,9 +1,16 @@
+using PayRollCalculator.Calculation;
+using PayRollCalculator.Data;
+using PayRollCalculator.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddSingleton<IEmployeeProvider, EmployeeProvider>();
+builder.Services.AddScoped<IDeductionCalculator, DeductionCalculator>();
 
 var app = builder.Build();
 
@@ -16,28 +23,37 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+app.MapPost("/employee", async (Employee employee, IEmployeeProvider employeeProvider) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    await employeeProvider.SaveEmployee(employee);
+    return Results.Ok();
+});
 
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/employee/dependent-types", async (IEmployeeProvider employeeProvider) =>
 {
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-       new WeatherForecast
-       (
-           DateTime.Now.AddDays(index),
-           Random.Shared.Next(-20, 55),
-           summaries[Random.Shared.Next(summaries.Length)]
-       ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    var dependentTypes = await employeeProvider.GetEmployeeDependentTypes();
+    return Results.Ok(dependentTypes);
+});
+
+app.MapGet("/employee/{id}", async (String id, IEmployeeProvider employeeProvider) =>
+{
+    var employeeResult = await employeeProvider.GetEmployee(id); 
+    if(employeeResult.isFound)
+    {
+        return Results.Ok(employeeResult.employee);
+    }
+    return Results.NotFound();
+});
+
+app.MapGet("/employee/{id}/payroll-deduction", async (String id, IEmployeeProvider employeeProvider, IDeductionCalculator deductionCalculator) =>
+{    
+    var employeeResult = await employeeProvider.GetEmployee(id);
+    if (employeeResult.isFound)
+    {
+        var payrollDeduction = await deductionCalculator.GetPayrollDeduction(employeeResult.employee!);
+        return Results.Ok(payrollDeduction);
+    }
+    return Results.NotFound();
+});
 
 app.Run();
-
-internal record WeatherForecast(DateTime Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
