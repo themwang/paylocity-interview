@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using PayRollCalculator.Calculation;
 using PayRollCalculator.Data;
 using PayRollCalculator.Models;
@@ -12,7 +13,24 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IEmployeeProvider, EmployeeProvider>();
 builder.Services.AddScoped<IDeductionCalculator, DeductionCalculator>();
 
+//TODO: Add authentication
+
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(MyAllowSpecificOrigins,
+                          policy =>
+                          {
+                              policy.WithOrigins("http://localhost:3000")
+                                                  .AllowAnyHeader()                                                  
+                                                  .AllowAnyMethod();
+                          });
+});
+
 var app = builder.Build();
+
+app.UseCors(MyAllowSpecificOrigins);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -23,10 +41,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapPost("/employee", async (Employee employee, IEmployeeProvider employeeProvider) =>
+app.MapPost("/employees", async (Employee employee, IEmployeeProvider employeeProvider) =>
 {
-    await employeeProvider.SaveEmployee(employee);
-    return Results.Ok();
+    var id = await employeeProvider.SaveEmployee(employee);
+    return Results.Ok(id);
 });
 
 app.MapGet("/employee/dependent-types", async (IEmployeeProvider employeeProvider) =>

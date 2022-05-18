@@ -14,15 +14,22 @@ namespace PayRollCalculator.Calculation
         public Task<PayrollDeduction> GetPayrollDeduction(Employee employee)
         {
             var deductions = EmployeeDeductionPerYear;
-
-            if (employee.Dependents.Count > 0)
-            {
-                deductions += DependentDeductionPerYear * employee.Dependents.Count;
-            }
-            
-            if (ShouldGetDiscount(employee))
+            if (ShouldGetDiscount(employee.EmployeeName))
             {
                 deductions = deductions * (1 - Discount);
+            }
+
+            foreach (var dependent in employee.Dependents)
+            {
+                if (!string.IsNullOrEmpty(dependent.Name))
+                {
+                    var dependentDeduction = DependentDeductionPerYear;
+                    if (ShouldGetDiscount(dependent.Name))
+                    {
+                        dependentDeduction = dependentDeduction * (1 - Discount);
+                    }
+                    deductions += dependentDeduction;
+                }
             }
 
             var deductionPerPayPeriod = decimal.Round(deductions / NumberOfPayPeriodsPerYear, 2);
@@ -35,12 +42,11 @@ namespace PayRollCalculator.Calculation
             });
         }
 
-        private bool ShouldGetDiscount(Employee employee)
+        private bool ShouldGetDiscount(String name)
         {
             bool result = false;
 
-            if (employee.EmployeeName.StartsWith("A", StringComparison.InvariantCultureIgnoreCase)
-                || employee.Dependents.Exists(d => d.Name.StartsWith("A", StringComparison.InvariantCultureIgnoreCase)))
+            if (name.StartsWith("A", StringComparison.InvariantCultureIgnoreCase))
             {
                 result = true;
             }

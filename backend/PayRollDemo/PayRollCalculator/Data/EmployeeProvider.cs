@@ -4,7 +4,7 @@ namespace PayRollCalculator.Data
 {
     public class EmployeeProvider : IEmployeeProvider
     {
-        // Should save this in a database
+        // TODO: save this in a database
         private Dictionary<string, Employee> _employees = new Dictionary<string, Employee>();
 
         public Task<List<string>> GetEmployeeDependentTypes()
@@ -29,14 +29,14 @@ namespace PayRollCalculator.Data
             return Task.FromResult(new EmployeeResult());
         }
 
-        public Task SaveEmployee(Employee employee)
+        public Task<string> SaveEmployee(Employee employee)
         {
             if (employee == null)
             {
                 throw new ArgumentNullException(nameof(employee));
             }
 
-            if (_employees.ContainsKey(employee.EmployeeId.ToString()))
+            if (!string.IsNullOrEmpty(employee.EmployeeId) && _employees.ContainsKey(employee.EmployeeId.ToString()))
             {
                 var employeeToUpdate = _employees[employee.EmployeeId.ToString()];
                 employeeToUpdate.EmployeeName = employee.EmployeeName;
@@ -44,10 +44,14 @@ namespace PayRollCalculator.Data
             }
             else
             {
+                if (string.IsNullOrEmpty(employee.EmployeeId))
+                {
+                    employee.EmployeeId = Guid.NewGuid().ToString();
+                }
                 _employees.Add(employee.EmployeeId.ToString(), employee);
             }
 
-            return Task.CompletedTask;
+            return Task.FromResult(employee.EmployeeId);
         }
     }
 }
